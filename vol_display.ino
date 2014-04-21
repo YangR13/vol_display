@@ -3,14 +3,24 @@
 Servo esc;
 
 //Define pins;
-int led_Data = A0;     //A# (0-5) = Analog pins
+int led_Data = A0;          //A# (0-5) = Analog pins
 int led_Latch = A1;
 int led_Clock = A2;
-int _RPM = A5;
+int RPM_check = A5;
 int esc_Out = 9;
+
 
 //Define variables;
 int esc_Arm = 10;
+int HDD_lowbound = 75;
+int HDD_highbound = 165;
+int RPM_target = 1000;      //Target RPM
+
+int vol_slices = 360;       //# of separate radial slices that will be plexed through;
+int vol_layers = 16;        //# of vertical layers;
+int vol_shiftsperlayer = 4; //# of 8-bit shift registers per layer;
+int vol_totalbytes = vol_shiftsperlayer*vol_layers;
+
 
 void setup()
 {
@@ -18,9 +28,12 @@ void setup()
   pinMode(led_Data, OUTPUT);
   pinMode(led_Latch, OUTPUT);
   pinMode(led_Clock, OUTPUT);
-  pinMode(_RPM, INPUT);
+  pinMode(RPM_check, INPUT);
+  
+  //Motor start and ramp up;
   esc.attach(esc_Out);
   esc.write(esc_Arm);
+  delay(2000);
   
   
   
@@ -36,7 +49,19 @@ void setup()
 
 void loop()
 {
+  //Check for incoming data;
   
+  //Cycle through arrays and shiftout data;
+  for()
+  {
+    //Cycle through radial slices;
+    for()
+    {
+      //Cycle and shift out all registers
+    }
+    
+    //Check for and break if at rotation completion; Calculate period;
+  }
   
   
   tick++;
