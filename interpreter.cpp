@@ -4,31 +4,43 @@
 #include <cmath>
 #include "library.h"
 
-#define maxRadius 16	// not counting center point
-#define maxHeight 16
+#define CONFIGFILE "config.txt"
 
-#define FILENAME "pattern1.txt"	// temporary; file selection will be added later
-
+int scanConfigFile();
 int scanFileAndConvert(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr));
 void printCoordinates(int numCoords, CartPnt **cArr, PolPnt **pArr);
 
 int ** createSerialData(int numCoords, PolPnt **pArr);
 void printSerialData(int **serialData);
 
-//TODO LIST
+// TODO LIST
 void sendSerialData(int **serialData);
 
+// GLOBAL VARIABLES
+int maxRadius;	// not counting center point
+int maxHeight;
+char FILENAME[16];
 
 // MAIN FUNCTION
 int main() {
+	FILE *fp;
 	int size, numCoords;	// size includes both valid and invalid coordinates; numCoords only includes valid coordinates
 	CartPnt **cArr;
 	PolPnt **pArr;
 	int **serialData;
 	
+	if(scanConfigFile()) {
+		printf("ERROR: Could not read Config file\n\n");
+		return 1;
+	}
+	
 	// file selection would occur here
 	char *filename = (char *)FILENAME;
-	FILE *fp = fopen(filename, "r");
+
+	if((fp = fopen(filename, "r")) == NULL) {
+		printf("ERROR: File \"%s\" could not be opened\n\n", filename);
+		return 1;
+	}
 	
 	numCoords = scanFileAndConvert(fp, &cArr, &pArr);
 	printCoordinates(numCoords, cArr, pArr);
@@ -36,6 +48,31 @@ int main() {
 	serialData = createSerialData(numCoords, pArr);
 	printSerialData(serialData);
 	
+	return 0;
+}
+
+int scanConfigFile() {
+	FILE *fp = fopen(CONFIGFILE, "r");
+	char parser[16];
+	
+	int intBuffer;
+	char strBuffer[16];
+
+	while(!feof(fp)) {
+		fscanf(fp, "%s ", parser);
+		if(strcmp(parser, "FILE:") == 0) {
+			fscanf(fp, "%s ", strBuffer);
+			strcpy(FILENAME, strBuffer);
+		}
+		if(strcmp(parser, "maxHeight:") == 0) {
+			if(fscanf(fp, "%d ", &intBuffer) != 1) return 1;
+			maxHeight = intBuffer;
+		}
+		if(strcmp(parser, "maxRadius:") == 0) {
+			if(fscanf(fp, "%d ", &intBuffer) != 1) return 1;
+			maxRadius = intBuffer;
+		}
+	}
 	return 0;
 }
 
@@ -57,6 +94,7 @@ int scanFileAndConvert(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr)) {
 				for(y = maxRadius; y >= maxRadius*-1; y--) {
 					for(x = maxRadius*-1; x <= maxRadius; x++) {
 						fscanf(fp, " %c", &parser);
+						if(parser == 'E') break;
 						if(parser == '0' && round(sqrt(pow(x, 2)+pow(y,2))) <= maxRadius)	//IF MARKED AND WITHIN MAXIMUM RADIUS
 							(*cArr)[numCoords++] = new CartPnt(height, x, y);
 					}
@@ -67,6 +105,7 @@ int scanFileAndConvert(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr)) {
 				for(height = maxHeight-1; height >= 0; height--) {
 					for(x = maxRadius*-1; x <= maxRadius; x++) {
 						fscanf(fp, " %c", &parser);
+						if(parser == 'E') break;
 						if(parser == '0' && round(sqrt(pow(x, 2)+pow(y,2))) <= maxRadius)	//IF MARKED AND WITHIN MAXIMUM RADIUS
 							(*cArr)[numCoords++] = new CartPnt(height, x, y);
 					}

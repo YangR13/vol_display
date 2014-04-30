@@ -1,0 +1,4 @@
+FILE: pattern0.txt
+
+maxHeight: 16
+maxRadius: 16
