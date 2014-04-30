@@ -21,9 +21,9 @@ class CartPnt {
 		void setX(int x_);
 		void setY(int y_);
 		
-		void printCoord();
+		void printCoord() const;
 		
-		PolPnt * toPolar();	
+		PolPnt * toPolar() const;	
 };
 
 /* -------------------------POLAR COORDINATE POINT------------------------- */
@@ -43,7 +43,9 @@ class PolPnt {
 		void setDeg(int deg_);
 		void setRadius(int radius_);
 		
-		void printCoord();
+		void printCoord() const;
+		
+		int toData() const;
 };
 
 #endif /* LIBRARY_H */

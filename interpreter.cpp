@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <cmath>
 #include "library.h"
 
@@ -8,62 +9,79 @@
 
 #define FILENAME "pattern1.txt"	// temporary; file selection will be added later
 
-int getSize(char *filename);
-int readFileAndConvert(char *filename, CartPnt **cArr, PolPnt **pArr);
+int scanFileAndConvert(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr));
 void printCoordinates(int numCoords, CartPnt **cArr, PolPnt **pArr);
 
+int ** createSerialData(int numCoords, PolPnt **pArr);
+void printSerialData(int **serialData);
+
 //TODO LIST
-void sendSerialData();
+void sendSerialData(int **serialData);
+
 
 // MAIN FUNCTION
 int main() {
 	int size, numCoords;	// size includes both valid and invalid coordinates; numCoords only includes valid coordinates
 	CartPnt **cArr;
 	PolPnt **pArr;
+	int **serialData;
 	
 	// file selection would occur here
 	char *filename = (char *)FILENAME;
+	FILE *fp = fopen(filename, "r");
 	
-	size = getSize(filename);
-	cArr = new CartPnt *[size];
-	pArr = new PolPnt *[size];
-	
-	numCoords = readFileAndConvert(filename, cArr, pArr);
+	numCoords = scanFileAndConvert(fp, &cArr, &pArr);
 	printCoordinates(numCoords, cArr, pArr);
+	
+	serialData = createSerialData(numCoords, pArr);
+	printSerialData(serialData);
 	
 	return 0;
 }
 
-// GET APPROXIMATE SIZE (ROUNDED UP) OF CART AND POL COORDINATE ARRAYS
-int getSize(char *filename) {
-	FILE *fp = fopen(filename, "r");
-	
-	int size = 0;
-	char parser;
-	while(fscanf(fp, " %c", &parser) == 1)
-		if(parser == 'x') size++;
-	
-	return size;
-}
-
 // READS PATTERN FILE AND CONVERTS TO CARTESIAN AND POLAR CORDINATES
-int readFileAndConvert(char *filename, CartPnt **cArr, PolPnt **pArr) {
-	FILE *fp = fopen(filename, "r");
-	
-	int numCoords, height, i, j;
+int scanFileAndConvert(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr)) {
+	char type[16];
+	int numCoords = 0;
+	int height, x, y;
 	char parser;
-		
-	while(!feof(fp)) {
-		fscanf(fp, "%d", &height);
-		for(j = maxRadius; j >= maxRadius*-1; j--) {
-			for(i = maxRadius*-1; i <= maxRadius; i++) {
-				fscanf(fp, " %c", &parser);
-				if(parser != '.' && round(sqrt(pow(i, 2)+pow(j,2))) <= maxRadius)	//IF MARKED AND WITHIN MAXIMUM RADIUS
-					cArr[numCoords++] = new CartPnt(height, i, j);
+	
+	fscanf(fp, "%s", type);
+	
+	if(strcmp(type, "TOPDOWN") == 0|| strcmp(type, "FRONTBACK") == 0) {
+		// initializing cArr to maximum possible number of coordinates
+		*cArr = new CartPnt *[maxHeight * (int)pow(2*maxRadius+1, 2)];
+		while(!feof(fp)) {
+			if(strcmp(type, "TOPDOWN") == 0) {
+				fscanf(fp, "%d", &height);
+				for(y = maxRadius; y >= maxRadius*-1; y--) {
+					for(x = maxRadius*-1; x <= maxRadius; x++) {
+						fscanf(fp, " %c", &parser);
+						if(parser == '0' && round(sqrt(pow(x, 2)+pow(y,2))) <= maxRadius)	//IF MARKED AND WITHIN MAXIMUM RADIUS
+							(*cArr)[numCoords++] = new CartPnt(height, x, y);
+					}
+				}
 			}
+			if(strcmp(type, "FRONTBACK") == 0) {			
+				fscanf(fp, "%d", &y);
+				for(height = maxHeight-1; height >= 0; height--) {
+					for(x = maxRadius*-1; x <= maxRadius; x++) {
+						fscanf(fp, " %c", &parser);
+						if(parser == '0' && round(sqrt(pow(x, 2)+pow(y,2))) <= maxRadius)	//IF MARKED AND WITHIN MAXIMUM RADIUS
+							(*cArr)[numCoords++] = new CartPnt(height, x, y);
+					}
+				}
+			}
+			
 		}
+		*pArr = new PolPnt *[numCoords];
+		for(int i=0; i<numCoords; i++) (*pArr)[i] = (*cArr)[i]->toPolar();
 	}
-	for(int i=0; i<numCoords; i++) pArr[i] = cArr[i]->toPolar();
+	if(strcmp(type, "OUTSIDEIN") == 0) {
+	
+	}
+	
+
 	
 	return numCoords;
 }
@@ -78,4 +96,27 @@ void printCoordinates(int numCoords, CartPnt **cArr, PolPnt **pArr) {
 	}
 	
 	printf("Number of coordinates: %d\n\n", numCoords);
+}
+
+
+// READS POLAR COORDINATES AND CONVERTS TO DATA TO SEND TO ARDUINO
+int ** createSerialData(int numCoords, PolPnt **pArr) {
+	int **serialData = new int*[360];
+
+	for(int i=0; i<360; i++)
+		serialData[i] = new int[maxHeight];
+
+	for(int i=0; i<numCoords; i++) {
+		serialData[pArr[i]->getDeg()][pArr[i]->getHeight()]+=pArr[i]->toData();
+	}
+	return serialData;
+}
+
+void printSerialData(int **serialData) {
+	for(int i=0; i<360; i++) {
+		for(int j=0; j<maxHeight; j++) {
+			if(serialData[i][j] != 0) printf("Data at deg %d and height %d is: %d\n", i, j, serialData[i][j]);
+		}
+	}
+	
 }
