@@ -24,7 +24,7 @@ char FILENAME[16];
 int maxRadius;	// not counting center point
 int maxHeight;
 
-char serialport[32] = "/dev/tty.usbmodem1411";
+char serialport[32];
 int baudrate;
 
 // MAIN FUNCTION
@@ -41,10 +41,11 @@ int main() {
 	}
 	
 	// file selection would occur here
-	char *filename = (char *)FILENAME;
+	char patternfile[32] = "patterns/";
+	strcat(patternfile, FILENAME);
 
-	if((fp = fopen(filename, "r")) == NULL) {
-		printf("ERROR: File \"%s\" could not be opened\n\n", filename);
+	if((fp = fopen(patternfile, "r")) == NULL) {
+		printf("ERROR: File \"%s\" could not be opened\n\n", patternfile);
 		return 1;
 	}
 	
