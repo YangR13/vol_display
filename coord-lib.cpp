@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cmath>
 
-#include "library.h"
+#include "coord-lib.h"
 
 /* -----------------------CARTESIAN COORDINATE POINT----------------------- */
 CartPnt::CartPnt(int height_, int x_, int y_) {
@@ -52,5 +52,5 @@ void PolPnt::printCoord() const {
 }
 
 int PolPnt::toData() const {
-	return pow(2, radius);
+	return (int) pow(2, radius-1);
 }

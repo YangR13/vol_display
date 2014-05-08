@@ -2,24 +2,30 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
-#include "library.h"
+#include <unistd.h>   // UNIX standard function definitions 
+
+#include "coord-lib.h"
+#include "arduino-serial-lib.h"
 
 #define CONFIGFILE "config.txt"
 
 int scanConfigFile();
-int scanFileAndConvert(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr));
+int scanPatternFile(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr));
 void printCoordinates(int numCoords, CartPnt **cArr, PolPnt **pArr);
 
-int ** createSerialData(int numCoords, PolPnt **pArr);
-void printSerialData(int **serialData);
+unsigned char ** createSerialData(int numCoords, PolPnt **pArr);
+void printSerialData(unsigned char ** serialData);
+void sendSerialData(unsigned char **serialData);
 
 // TODO LIST
-void sendSerialData(int **serialData);
 
 // GLOBAL VARIABLES
+char FILENAME[16];
 int maxRadius;	// not counting center point
 int maxHeight;
-char FILENAME[16];
+
+char serialport[32] = "/dev/tty.usbmodem1411";
+int baudrate;
 
 // MAIN FUNCTION
 int main() {
@@ -27,7 +33,7 @@ int main() {
 	int size, numCoords;	// size includes both valid and invalid coordinates; numCoords only includes valid coordinates
 	CartPnt **cArr;
 	PolPnt **pArr;
-	int **serialData;
+	unsigned char **serialData;
 	
 	if(scanConfigFile()) {
 		printf("ERROR: Could not read Config file\n\n");
@@ -42,42 +48,47 @@ int main() {
 		return 1;
 	}
 	
-	numCoords = scanFileAndConvert(fp, &cArr, &pArr);
+	numCoords = scanPatternFile(fp, &cArr, &pArr);
 	printCoordinates(numCoords, cArr, pArr);
 	
 	serialData = createSerialData(numCoords, pArr);
 	printSerialData(serialData);
+	
+	sendSerialData(serialData);
 	
 	return 0;
 }
 
 int scanConfigFile() {
 	FILE *fp = fopen(CONFIGFILE, "r");
-	char parser[16];
+	char parser[32];
 	
 	int intBuffer;
-	char strBuffer[16];
+	char strBuffer[32];
 
 	while(!feof(fp)) {
 		fscanf(fp, "%s ", parser);
 		if(strcmp(parser, "FILE:") == 0) {
-			fscanf(fp, "%s ", strBuffer);
-			strcpy(FILENAME, strBuffer);
+			fscanf(fp, "%s ", FILENAME);
 		}
 		if(strcmp(parser, "maxHeight:") == 0) {
-			if(fscanf(fp, "%d ", &intBuffer) != 1) return 1;
-			maxHeight = intBuffer;
+			if(fscanf(fp, "%d ", &maxHeight) != 1) return 1;
 		}
 		if(strcmp(parser, "maxRadius:") == 0) {
-			if(fscanf(fp, "%d ", &intBuffer) != 1) return 1;
-			maxRadius = intBuffer;
+			if(fscanf(fp, "%d ", &maxRadius) != 1) return 1;
+		}
+		if(strcmp(parser, "serialport:") == 0) {
+			fscanf(fp, "%s ", serialport);
+		}
+		if(strcmp(parser, "baudrate:") == 0) {
+			if(fscanf(fp, "%d ", &baudrate) != 1) return 1;
 		}
 	}
 	return 0;
 }
 
 // READS PATTERN FILE AND CONVERTS TO CARTESIAN AND POLAR CORDINATES
-int scanFileAndConvert(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr)) {
+int scanPatternFile(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr)) {
 	char type[16];
 	int numCoords = 0;
 	int height, x, y;
@@ -139,23 +150,41 @@ void printCoordinates(int numCoords, CartPnt **cArr, PolPnt **pArr) {
 
 
 // READS POLAR COORDINATES AND CONVERTS TO DATA TO SEND TO ARDUINO
-int ** createSerialData(int numCoords, PolPnt **pArr) {
-	int **serialData = new int*[360];
-
+unsigned char ** createSerialData(int numCoords, PolPnt **pArr) {
+	
+	// creates 2D array to hold bytes
+	unsigned char **serialData = new unsigned char*[360];
 	for(int i=0; i<360; i++)
-		serialData[i] = new int[maxHeight];
+		serialData[i] = new unsigned char[maxHeight*2];
 
+	// fills 2D array with byte values from pArr
 	for(int i=0; i<numCoords; i++) {
-		serialData[pArr[i]->getDeg()][pArr[i]->getHeight()]+=pArr[i]->toData();
+		int deg = pArr[i]->getDeg();
+		
+		// assigns byte spaces within each degree, at maxRadius/8 spaces per height space
+		int byteIndex = pArr[i]->getHeight()*(maxRadius/8) + (pArr[i]->getRadius()-1)/8;
+		
+		// shifts down data if data exceeds capacity of unsigned char
+		unsigned char data = (pArr[i]->toData()) >> (((pArr[i]->getRadius()-1)/8)*8);
+
+		serialData[deg][byteIndex] |= data;
 	}
 	return serialData;
 }
 
-void printSerialData(int **serialData) {
+void printSerialData(unsigned char **serialData) {
 	for(int i=0; i<360; i++) {
-		for(int j=0; j<maxHeight; j++) {
-			if(serialData[i][j] != 0) printf("Data at deg %d and height %d is: %d\n", i, j, serialData[i][j]);
+		for(int j=0; j<maxHeight*2; j++) {
+			if(serialData[i][j] != 0) printf("Data at deg %d and byteIndex %d is: %d\n", i, j, serialData[i][j]);
 		}
 	}
-	
 }
+
+
+void sendSerialData(unsigned char **serialData) {
+	int fd = serialport_init(serialport, baudrate);
+	for(int i=0; i<360; i++) {
+		write(fd, serialData[i], 360 * maxHeight * (maxRadius/8));
+	}
+}
+
