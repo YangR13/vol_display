@@ -1,5 +1,4 @@
 #include <Servo.h>
-
 Servo ESC;
 
 //Define pins;
@@ -51,16 +50,6 @@ void loop()
   //Check for incoming data;
   
   //Cycle through arrays and shiftout data;
-  for()
-  {
-    //Cycle through radial slices;
-    for()
-    {
-      //Cycle and shift out all registers
-    }
-    
-    //Check for and break if at rotation completion; Calculate period;
-  }
   
   
   tick++;
