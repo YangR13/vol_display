@@ -1,12 +1,11 @@
-int led_Data = A1;
+int led_Data = A3;
 int led_Latch = A2;
-int led_Clock = A3;
+int led_Clock = A1;
 
 int vol_slices = 360;
 int vol_layers = 1;
 
-int i, j;
-char *serialData[360];
+byte serialData[360][2];
 
 void setup()
 {
@@ -15,29 +14,23 @@ void setup()
   pinMode(led_Latch, OUTPUT);
   pinMode(led_Clock, OUTPUT);
   
-  for(i=0; i<360; i++) {
-    serialData[i] = (char *) malloc(vol_layers*2*sizeof(char));
-  }
-  
   Serial.begin(9600);
 }
 
 void loop()
 {
-  if(Serial.available() > 0) {
-    for(i=0; i<360; i++) {
-      for(j=0; j<vol_layers*2; i++) {
-        serialData[i][j] = Serial.read();
-      } 
-    }
-  }
+  
+}
 
-  for(i=0; i<360; i++) {
-    digitalWrite(led_Latch, LOW);
-    for(j=0; j<vol_layers*2; i++) {
-      shiftOut(led_Data, led_Clock, MSBFIRST, serialData[i][j]);
-    }
-    digitalWrite(led_Latch, HIGH);
-    delay(1000);
+void serialEvent() {
+  for(int i=0; i<vol_slices; i++) {
+   Serial.readBytes((char *)serialData[i], 2);
+  } 
+  
+  for(int i=0; i<=vol_slices; i++) {
+    Serial.print(serialData[i][0], BIN);
+    Serial.print(" ");
+    Serial.print(serialData[i][1], BIN);
+    Serial.print("\n");
   }
 }
