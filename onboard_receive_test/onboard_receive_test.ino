@@ -1,32 +1,52 @@
-
-int RPM_check;       //Photoresistor pin: 
-
-int ESC_tol = 1000;  //Maximum tolerated variation in rotational period in micros();
 uint8_t bitcount = 0;    //Ticker for CshiftOut function;
 
-int delay_overhead;  //Time it takes to run output all data;
-int delay_degree;    //Time needed to wait between each slice;
-
+volatile uint8_t bit_in_count = 0;
+volatile uint16_t *inputID;
+volatile uint16_t *timeslice;
+volatile uint16_t *layer;
+volatile uint16_t *newval;
 //Function Prototypes
 void CshiftOut(uint16_t);  //WARNING: HARDCODED PINS
-int ESC_getPeriod();       //Returns the time required for a certain number of rotations.
-boolean notconstant();     //Checks if angular speed has stabilized.
 
 void setup()
 {
-  int led_Data = A2;   //Data pin: ANALOG2;    PORTC 2
-  int led_Latch = A1;  //Latch pin: ANALOG1;   PORTC 1
-  int led_Clock = A0;  //Clock pin: ANALOG0;   PORTC 0
-  //Configure IO Pins
-  pinMode(led_Data, OUTPUT);
-  pinMode(led_Latch, OUTPUT);
-  pinMode(led_Clock, OUTPUT);
-  pinMode(RPM_check, INPUT);
+  pinMode(2, INPUT);    //Data input, PD2
+  pinMode(A3, INPUT);   //Clock input, PC3
+  Serial.begin(9600);
+  attachInterrupt(0, receive_update, RISING); //Interrupt when data pin goes from low to high;
 }
 
 void loop()
 {
 
+}
+
+void receive_update()
+{
+  Creceive(2, inputID);
+  Creceive(7, timeslice);
+  Creceive(3, layer);
+  Creceive(16, newval);
+  Serial.print(*inputID);
+  Serial.print(', ');
+  Serial.print(*timeslice);
+  Serial.print(', ');
+  Serial.print(*layer);
+  Serial.print(', ');
+  Serial.println(*newval);
+}
+
+void Creceive(uint8_t bitlength, volatile uint16_t *num_address)
+{
+  bit_in_count = 0;
+  while(bit_in_count < bitlength)
+  {
+    if(PINC & (1 << 3)) //if CLOCK pin is HIGH;
+    {
+      bitWrite(*num_address, bit_in_count, (PIND & (1 << 2)));
+      bit_in_count++;
+    }
+  }
 }
 
 void CshiftOut(uint16_t val)
@@ -42,32 +62,6 @@ void CshiftOut(uint16_t val)
   }
 }
 
-int ESC_getPeriod()
-{
-  int count, current, start = micros();
-  int same = 0;
-  for(count = 1; count <= 1000;){
-    if(digitalRead(RPM_check) && same == 0){
-      count++; 
-      same = 1;
-    }
-    else if(gatePort != RPM_trip && same == 1)
-      same = 0;
-  }
-  current = micros();
-  return current - previous;
-}
-
-boolean notconstant()
-{
-  int delta = 10000;
-  int samp1 = ESC_getperiod();
-  delta = ESC_getperiod() - samp1;
-  if(delta <= ESC_tol)
-    return false;
-  else
-    return true;
-}
 
 
 
