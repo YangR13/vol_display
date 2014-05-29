@@ -6,7 +6,7 @@ int signal;
 int gatePort = 7;
 int gateThreshold = 0;
 int previous, current, period, count, same = 0;
-int testspeed = 95;
+int testspeed = 103;
 int num_samples = 100;
 
 void setup()

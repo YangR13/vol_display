@@ -1,10 +1,11 @@
 uint8_t bitcount = 0;    //Ticker for CshiftOut function;
 
 volatile uint8_t bit_in_count = 0;
-volatile uint16_t *inputID;
-volatile uint16_t *timeslice;
-volatile uint16_t *layer;
-volatile uint16_t *newval;
+volatile uint16_t inputID;
+volatile uint16_t timeslice;
+volatile uint16_t layer;
+volatile uint16_t newval;
+volatile uint16_t temp;
 //Function Prototypes
 void CshiftOut(uint16_t);  //WARNING: HARDCODED PINS
 
@@ -21,32 +22,39 @@ void loop()
 
 }
 
-void receive_update()
+void lemmeknow()
 {
-  Creceive(2, inputID);
-  Creceive(7, timeslice);
-  Creceive(3, layer);
-  Creceive(16, newval);
-  Serial.print(*inputID);
-  Serial.print(', ');
-  Serial.print(*timeslice);
-  Serial.print(', ');
-  Serial.print(*layer);
-  Serial.print(', ');
-  Serial.println(*newval);
+  Serial.println("HAI THERE");
 }
 
-void Creceive(uint8_t bitlength, volatile uint16_t *num_address)
+void receive_update()
+{
+  inputID = Creceive(2);
+  timeslice = Creceive(7);
+  layer = Creceive(3);
+  newval = Creceive(16);
+  Serial.print(inputID);
+  Serial.print(', ');
+  Serial.print(timeslice);
+  Serial.print(', ');
+  Serial.print(layer);
+  Serial.print(', ');
+  Serial.println(newval);
+}
+
+uint16_t Creceive(uint8_t bitlength)
 {
   bit_in_count = 0;
+  temp = 0;
   while(bit_in_count < bitlength)
   {
     if(PINC & (1 << 3)) //if CLOCK pin is HIGH;
     {
-      bitWrite(*num_address, bit_in_count, (PIND & (1 << 2)));
+      bitWrite(temp, bit_in_count, (PIND & (1 << 2)));
       bit_in_count++;
     }
   }
+  return temp;
 }
 
 void CshiftOut(uint16_t val)
