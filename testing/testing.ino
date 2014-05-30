@@ -2,10 +2,10 @@ int led_Data = A3;
 int led_Latch = A2;
 int led_Clock = A1;
 
-int vol_slices = 360;
-int vol_layers = 1;
+const int vol_slices = 360;
+const int vol_layers = 1;
 
-byte serialData[360][2];
+uint16_t serialData[vol_slices][vol_layers];
 
 void setup()
 {
@@ -24,13 +24,17 @@ void loop()
 
 void serialEvent() {
   for(int i=0; i<vol_slices; i++) {
-   Serial.readBytes((char *)serialData[i], 2);
-  } 
+    for(int j=0; j<vol_layers; j++) {
+     byte serialBuffer[2];
+     Serial.readBytes((char *)serialBuffer, 2);
+     serialData[i][j] = (uint16_t) serialBuffer[0] | ((uint16_t) serialBuffer[1] << 8);
+    } 
+  }
   
   for(int i=0; i<=vol_slices; i++) {
-    Serial.print(serialData[i][0], BIN);
-    Serial.print(" ");
-    Serial.print(serialData[i][1], BIN);
-    Serial.print("\n");
+    for(int j=0; j<vol_layers; j++) {
+      Serial.print(serialData[i][j], BIN);
+      Serial.print("\n");
+    }
   }
 }
