@@ -96,19 +96,19 @@ void Creceive()
   }
   else if(bit_in_count < 23)     //Write to slice coordinate;
   {
-    bitWrite(timeslice, (bit_in_count - 7), (PINC & (1 << 3)));
+    bitWrite(timeslice, (bit_in_count - 16), (PINC & (1 << 3)));
     bit_in_count++;
     return;
   }
   else if(bit_in_count < 25)     //Write to layer coordinate;
   {
-    bitWrite(layer, (bit_in_count - 10), (PINC & (1 << 3)));
+    bitWrite(layer, (bit_in_count - 19), (PINC & (1 << 3)));
     bit_in_count++;
     return;
   }
   else
   {
-    bitWrite(layer, (bit_in_count - 10), (PINC & (1 << 3))); //Finish writing to layer;
+    bitWrite(layer, (bit_in_count - 19), (PINC & (1 << 3))); //Finish writing to layer;
     bit_in_count = 0;
 
     //Update data_array;
