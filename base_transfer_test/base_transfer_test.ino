@@ -45,6 +45,3 @@ void Ctransfer(uint8_t bitlength, uint16_t val)
     delayMicroseconds(8);
   }
 }
-
-
-
