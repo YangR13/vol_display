@@ -50,7 +50,7 @@ void CshiftOut(uint16_t val)
 {
   for(bitcount = 0; bitcount < 16; bitcount++)
   {
-    if(bitRead(val, bitcount) == 1)
+    if(bitRead(val, bitcount))
       PORTC |= (1 << 2);
     else
       PORTC &= ~(1 << 2);

@@ -1,6 +1,9 @@
 #include <Servo.h>
 Servo ESC;
 
+int num_slices = 104;
+int onboard_num_layers = 5;
+
 //Define pins;
 int ESC_Out = 11;
 
@@ -19,10 +22,8 @@ void setup()
   //Motor start and ramp up;
   ESC.attach(ESC_Out);
   ESC.write(ESC_Arm);
-  delay(5000);
-  //Slowly ramp up speed;
-  ESC.write(ESC_speed);
-  //Fill array with proper values;
+  delay(5000);              //Wait for ESC to arm;
+  ESC.write(ESC_speed);     //Send speed to ESC;
 }
 
 void loop()
@@ -32,10 +33,10 @@ void loop()
 
 void update_onboard(uint8_t timeslice, uint8_t layer, uint16_t newval) //Update coordinate of onboard arduino
 {
-  tierport = layer/5;         //Tier 0 is PC0, Tier 1 is PC1, Tier 2 is PC2, Clock is PC3; (Analog Pins);
+  tierport = layer/onboard_num_layers;         //Tier 0 is PC0, Tier 1 is PC1, Tier 2 is PC2, Clock is PC3; (Analog Pins);
   Ctransfer(16, newval);      //Transfer new value;
-  Ctransfer(7, timeslice);    //Transfer timeslice coordinate;
-  Ctransfer(3, layer);        //Transfer layer coordinate;
+  Ctransfer(7, (timeslice + 25*layer%4)%num_slices);    //Transfer timeslice coordinate with offsets;
+  Ctransfer(3, layer%onboard_num_layers);        //Transfer layer coordinate;
 }
 
 void Ctransfer(uint8_t bitlength, uint16_t val)

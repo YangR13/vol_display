@@ -1,0 +1,21 @@
+Whirlygig Materials:
+
+480 Blue SMD LEDs
+60 MM74HC595MX 8-bit latched SMD shift registers
+15 wooden coffee stirrers
+3 Bareduino kits
+3 28-pin DIP sockets
+1 Arduino UNO R3
+6A Brushless motor ESC
+Brushless HDD motor
+Photoresistor and LED
+2 100uF electrolytic capacitors
+12V 1A power supply
+Graphite rod
+Silver wire
+30-gauge magnet wire
+Ball bearings
+#8-32 threaded steel rod and nuts
+Stripped hard drive
+Miscellaneous plastic, aluminum, wood, and other junk
+Shitload of solder, cyanoacrylate, and patience

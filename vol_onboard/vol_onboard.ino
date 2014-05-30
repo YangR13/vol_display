@@ -1,22 +1,24 @@
+int num_slices = 104;
+int num_half = num_slices/2;
+int num_layers = 5;
 int ESC_tol = 1000;  //Maximum tolerated variation in rotational period in micros();
 
 uint16_t delay_overhead;  //Time it takes to run output all data;
-uint16_t delay_degree;    //Time needed to wait between each shiftout;
+uint16_t delay_degree = 1;    //Time needed to wait between each shiftout;
 uint16_t delay_slice;     //Time needed for each slice; (angular speed)
 
 uint8_t bitcount = 0;                //Ticker for CshiftOut function;
 volatile uint8_t bit_in_count = 0;   //Ticker for data receiving;
 volatile uint8_t current_slice;      //Ticker for shifting out data;
-volatile uint8_t current_layer;      //Ticker for shifting out data;
+volatile uint8_t opposite_slice;
+int current_layer;
 
 volatile uint8_t timeslice;          //Global storage variable for new data coordinate;
 volatile uint8_t layer;              //Global Storage variable for new data coordinate;
 volatile uint16_t newval;            //Global Storage variable for new data value;
 
-volatile uint16_t data_array[100][5] = {
-  0};    //Initialize data array with all zeros.
+uint16_t data_array[num_slices][num_layers];    //Initialize data array with all zeros.
 //Format:    data_array[timeslice][layer] = {data_value @ location};
-
 
 //Function Prototypes
 void slice_reset();        //Resets slice count after each rotation. Interrupt Routine;
@@ -39,19 +41,28 @@ void setup()
   pinMode(2, INPUT);   //Interrupt for data receive;
   pinMode(3, INPUT);   //Interrupt for rotation reset;
 
+  for(int k = 0; k < num_slices; k++)
+  {
+    for(int i = 0; i < num_layers; i++)
+      data_array[k][i] = 0;
+  }
+
   //Time the loop() function to determine overhead;
-  uint32_t k, period;
-  uint32_t current = micros();
-  for(k = 0; k < 10000; k++)
+  long period;
+  long current = micros();
+
+  for(int k = 0; k < 100; k++)
     loop();
   period = micros() - current;
-  delay_overhead = period/10000;
+  delay_overhead = period/100;
 
   //RPM Sensing and delay calculations;
   while(RPM_notconstant());    //Wait until RPM is ~constant;
   delay_slice = ESC_getPeriod()/1000;
+  delay_degree = (delay_slice - delay_overhead)/num_slices; //# Microseconds;
   
-  delay_degree = (delay_overhead + delay_slice)/100; //# Microseconds;
+  if(!(delay_degree >= 1))     //Prevent negative or 0 values;
+    delay_degree = 1;
 
   attachInterrupt(0, Creceive, RISING);    //Interrupt to pulse clock and input data;
   attachInterrupt(1, reset, RISING); //Interrupt to reset at each rotation;
@@ -59,23 +70,37 @@ void setup()
 
 void loop()
 {
-  for(current_slice = 0; current_slice < 100; current_slice++)
+  for(current_slice = 0; current_slice < num_half; current_slice++)
   {
+    opposite_slice = current_slice + num_half;
     PORTC &= ~(1 << 1);   //Begin sending in new data;
-    if(current_slice < 50)
-    {
-      for(current_layer = 0; current_layer <= 4; current_layer++)
-        CShiftOut(data_array[current_slice][current_layer]);      //Shiftout far side; Bottom to top;
-      for(current_layer = 4; current_layer >= 0; current_layer--)
-        CShiftOut(data_array[current_slice + 50][current_layer]);      //Shiftout near side; Top to bottom;
-    }
-    else
-    {
-      for(current_layer = 0; current_layer <= 4; current_layer++)
-        CShiftOut(data_array[current_slice][current_layer]);      //Shiftout far side; Bottom to top;
-      for(current_layer = 4; current_layer >= 0; current_layer--)
-        CShiftOut(data_array[current_slice - 50][current_layer]);      //Shiftout near side; Top to bottom;
-    }
+    
+    CShiftOut(data_array[opposite_slice][4]);
+    CShiftOut(data_array[opposite_slice][3]);
+    CShiftOut(data_array[opposite_slice][2]);
+    CShiftOut(data_array[opposite_slice][1]);
+    CShiftOut(data_array[opposite_slice][0]);
+    CShiftOut(data_array[current_slice][0]);
+    CShiftOut(data_array[current_slice][1]);
+    CShiftOut(data_array[current_slice][2]);
+    CShiftOut(data_array[current_slice][3]);
+    CShiftOut(data_array[current_slice][4]);
+    delayMicroseconds(delay_degree);
+    PORTC |= (1 << 1);    //Display all new data;
+  }
+  for(; current_slice < num_slices; current_slice++)
+  {
+    opposite_slice = current_slice - num_half;
+    CShiftOut(data_array[opposite_slice][4]);
+    CShiftOut(data_array[opposite_slice][3]);
+    CShiftOut(data_array[opposite_slice][2]);
+    CShiftOut(data_array[opposite_slice][1]);
+    CShiftOut(data_array[opposite_slice][0]);
+    CShiftOut(data_array[current_slice][0]);
+    CShiftOut(data_array[current_slice][1]);
+    CShiftOut(data_array[current_slice][2]);
+    CShiftOut(data_array[current_slice][3]);
+    CShiftOut(data_array[current_slice][4]);
     delayMicroseconds(delay_degree);
     PORTC |= (1 << 1);    //Display all new data;
   }
@@ -83,7 +108,7 @@ void loop()
 
 void reset()
 {
-  current_slice = 0;
+  current_slice = num_slices;    //Kicks current_slice to the end, breaking all display loops.
 }
 
 void Creceive()
@@ -124,7 +149,7 @@ void CShiftOut(uint16_t val)
 {
   for(bitcount = 0; bitcount < 16; bitcount++)
   {
-    if(bitRead(val, bitcount) == 1)
+    if(bitRead(val, bitcount))
       PORTC |= (1 << 2);
     else
       PORTC &= ~(1 << 2);
@@ -152,8 +177,18 @@ int ESC_getPeriod()
 
 boolean RPM_notconstant()
 {
-  int delta;
-  int samp1 = ESC_getPeriod();
+  uint32_t delta;
+  uint32_t samp1 = ESC_getPeriod();
   delta = ESC_getPeriod() - samp1;
   return (delta >= ESC_tol);
 }
+
+
+
+
+
+
+
+
+
+
