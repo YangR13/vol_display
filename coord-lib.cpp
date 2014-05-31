@@ -2,6 +2,7 @@
 #include <cmath>
 
 #include "coord-lib.h"
+extern int vol_slices;
 
 /* -----------------------CARTESIAN COORDINATE POINT----------------------- */
 CartPnt::CartPnt(int height_, int x_, int y_) {
@@ -24,8 +25,8 @@ void CartPnt::printCoord() const {
 
 // Convets Cartesian Coordinates to Polar Coordinates
 PolPnt * CartPnt::toPolar() const {
-	int deg = (int)(atan2(y,x) * 180 / M_PI);
-	if(deg < 0) deg+=360;
+	int deg = (int)(atan2(y,x) * 180 / M_PI) * (vol_slices/360.0);
+	if(deg < 0) deg+=vol_slices;
 	int radius = (int)round((sqrt(pow(x,2)+pow(y,2))));
 	
 	PolPnt *p = new PolPnt(height, deg, radius);

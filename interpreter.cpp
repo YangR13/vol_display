@@ -22,8 +22,10 @@ void sendSerialData(uint16_t **serialData);
 
 // GLOBAL VARIABLES
 char FILENAME[16];
-int maxRadius;	// not counting center point
-int maxHeight;
+
+int vol_slices;
+int vol_layers;
+int vol_radius;	// not counting center point
 
 char serialport[32];
 int baudrate;
@@ -73,11 +75,14 @@ int scanConfigFile() {
 		if(strcmp(parser, "FILE:") == 0) {
 			fscanf(fp, "%s ", FILENAME);
 		}
-		if(strcmp(parser, "maxHeight:") == 0) {
-			if(fscanf(fp, "%d ", &maxHeight) != 1) return 1;
+		if(strcmp(parser, "vol_slices:") == 0) {
+			if(fscanf(fp, "%d ", &vol_slices) != 1) return 1;
 		}
-		if(strcmp(parser, "maxRadius:") == 0) {
-			if(fscanf(fp, "%d ", &maxRadius) != 1) return 1;
+		if(strcmp(parser, "vol_layers:") == 0) {
+			if(fscanf(fp, "%d ", &vol_layers) != 1) return 1;
+		}
+		if(strcmp(parser, "vol_radius:") == 0) {
+			if(fscanf(fp, "%d ", &vol_radius) != 1) return 1;
 		}
 		if(strcmp(parser, "serialport:") == 0) {
 			fscanf(fp, "%s ", serialport);
@@ -100,26 +105,26 @@ int scanPatternFile(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr)) {
 	
 	if(strcmp(type, "TOPDOWN") == 0|| strcmp(type, "FRONTBACK") == 0) {
 		// initializing cArr to maximum possible number of coordinates
-		*cArr = new CartPnt *[maxHeight * (int)pow(2*maxRadius+1, 2)];
+		*cArr = new CartPnt *[vol_layers * (int)pow(2*vol_radius+1, 2)];
 		while(!feof(fp)) {
 			if(strcmp(type, "TOPDOWN") == 0) {
 				fscanf(fp, "%d", &height);
-				for(y = maxRadius; y >= maxRadius*-1; y--) {
-					for(x = maxRadius*-1; x <= maxRadius; x++) {
+				for(y = vol_radius; y >= vol_radius*-1; y--) {
+					for(x = vol_radius*-1; x <= vol_radius; x++) {
 						fscanf(fp, " %c", &parser);
 						if(parser == 'E') break;
-						if(parser == '0' && round(sqrt(pow(x, 2)+pow(y,2))) <= maxRadius)	//IF MARKED AND WITHIN MAXIMUM RADIUS
+						if(parser == '0' && round(sqrt(pow(x, 2)+pow(y,2))) <= vol_radius)	//IF MARKED AND WITHIN MAXIMUM RADIUS
 							(*cArr)[numCoords++] = new CartPnt(height, x, y);
 					}
 				}
 			}
 			if(strcmp(type, "FRONTBACK") == 0) {			
 				fscanf(fp, "%d", &y);
-				for(height = maxHeight-1; height >= 0; height--) {
-					for(x = maxRadius*-1; x <= maxRadius; x++) {
+				for(height = vol_layers-1; height >= 0; height--) {
+					for(x = vol_radius*-1; x <= vol_radius; x++) {
 						fscanf(fp, " %c", &parser);
 						if(parser == 'E') break;
-						if(parser == '0' && round(sqrt(pow(x, 2)+pow(y,2))) <= maxRadius)	//IF MARKED AND WITHIN MAXIMUM RADIUS
+						if(parser == '0' && round(sqrt(pow(x, 2)+pow(y,2))) <= vol_radius)	//IF MARKED AND WITHIN MAXIMUM RADIUS
 							(*cArr)[numCoords++] = new CartPnt(height, x, y);
 					}
 				}
@@ -157,7 +162,7 @@ uint16_t **createSerialData(int numCoords, PolPnt **pArr) {
 	// creates 2D array to hold bytes
 	uint16_t **serialData = new uint16_t*[360];
 	for(int i=0; i<360; i++)
-		serialData[i] = new uint16_t[maxHeight];
+		serialData[i] = new uint16_t[vol_layers];
 
 	// fills 2D array with byte values from pArr
 	for(int i=0; i<numCoords; i++) {
@@ -167,11 +172,16 @@ uint16_t **createSerialData(int numCoords, PolPnt **pArr) {
 }
 
 void printSerialData(uint16_t **serialData) {
-	for(int i=0; i<360; i++) {
-		for(int j=0; j<maxHeight; j++) {
-			if(serialData[i][j] != 0) printf("Data at deg %d and height %d is: %d\n", i, j, serialData[i][j]);
+	int count = 0;
+	for(int j=0; j<vol_layers; j++) {
+		for(int i=0; i<vol_slices; i++) {
+			if(serialData[i][j] != 0) {
+				printf("Data at layer %d and slice %d is: %d\n", j, i, serialData[i][j]);
+				count++;
+			}
 		}
 	}
+	printf("\nNumber of data packages: %d\n\n", count);
 }
 
 
@@ -181,9 +191,14 @@ void sendSerialData(uint16_t **serialData) {
 	if(fd == -1) return;
 	
 	printf("Sending serial data...\n");
-	for(int i=0; i<360; i++) {
-		for(int j=0; j<maxHeight; j++) {
-			bytecount += write(fd, &serialData[i][j], 2);
+	for(int j=0; j<vol_layers; j++) {
+		for(int i=0; i<vol_slices; i++) {
+			if(serialData[i][j] != 0) {
+				bytecount += write(fd, &serialData[i][j], 2);
+				bytecount += write(fd, &i, 1);
+				bytecount += write(fd, &j, 1);
+			}
+			if(i % 10 == 0) sleep(1);
 		}
 	}
 	printf("Data transfer complete\n");

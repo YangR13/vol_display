@@ -1,7 +1,8 @@
 FILE: pattern0.txt
 
-maxHeight: 1
-maxRadius: 16
+vol_slices: 104
+vol_layers: 15
+vol_radius: 16
 
 serialport: /dev/tty.usbmodem1421
 baudrate: 9600
