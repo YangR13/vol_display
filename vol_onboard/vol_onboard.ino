@@ -17,7 +17,7 @@ volatile uint8_t timeslice;          //Global storage variable for new data coor
 volatile uint8_t layer;              //Global Storage variable for new data coordinate;
 volatile uint16_t newval;            //Global Storage variable for new data value;
 
-uint16_t data_array[num_slices][num_layers];    //Initialize data array with all zeros.
+volatile uint16_t data_array[104][5];    //Initialize data array with all zeros.
 //Format:    data_array[timeslice][layer] = {data_value @ location};
 
 //Function Prototypes
@@ -40,28 +40,37 @@ void setup()
   pinMode(A3, INPUT);  //Transfer Data Input;
   pinMode(2, INPUT);   //Interrupt for data receive;
   pinMode(3, INPUT);   //Interrupt for rotation reset;
-
   for(int k = 0; k < num_slices; k++)
   {
     for(int i = 0; i < num_layers; i++)
-      data_array[k][i] = 0;
+      data_array[k][i] = 1;
   }
 
   //Time the loop() function to determine overhead;
   long period;
   long current = micros();
 
+  loop();
+
+  for(int k = 0; k < num_slices; k++)
+  {
+    for(int i = 0; i < num_layers; i++)
+      data_array[k][i] = 0;
+  }
+  
   for(int k = 0; k < 100; k++)
     loop();
   period = micros() - current;
   delay_overhead = period/100;
 
   //RPM Sensing and delay calculations;
-  while(RPM_notconstant());    //Wait until RPM is ~constant;
+  boolean store = bitRead(PIND, 3);
+  while(bitRead(PIND, 3) == store);    //Wait till there's a change (so it's actually spinning?);
+  while(RPM_notconstant());            //Wait until RPM is ~constant;
   delay_slice = ESC_getPeriod()/1000;
   delay_degree = (delay_slice - delay_overhead)/num_slices; //# Microseconds;
-  
-  if(!(delay_degree >= 1))     //Prevent negative or 0 values;
+
+  if(delay_degree <= 1)     //Prevent negative or 0 values;
     delay_degree = 1;
 
   attachInterrupt(0, Creceive, RISING);    //Interrupt to pulse clock and input data;
@@ -70,11 +79,9 @@ void setup()
 
 void loop()
 {
-  for(current_slice = 0; current_slice < num_half; current_slice++)
+  for(current_slice = 0, opposite_slice = num_half; current_slice < num_half; current_slice++, opposite_slice++)
   {
-    opposite_slice = current_slice + num_half;
     PORTC &= ~(1 << 1);   //Begin sending in new data;
-    
     CShiftOut(data_array[opposite_slice][4]);
     CShiftOut(data_array[opposite_slice][3]);
     CShiftOut(data_array[opposite_slice][2]);
@@ -88,9 +95,9 @@ void loop()
     delayMicroseconds(delay_degree);
     PORTC |= (1 << 1);    //Display all new data;
   }
-  for(; current_slice < num_slices; current_slice++)
+  for(opposite_slice = 0; current_slice < num_slices; current_slice++, opposite_slice++)
   {
-    opposite_slice = current_slice - num_half;
+    PORTC &= ~(1 << 1);   //Begin sending in new data;
     CShiftOut(data_array[opposite_slice][4]);
     CShiftOut(data_array[opposite_slice][3]);
     CShiftOut(data_array[opposite_slice][2]);
@@ -162,13 +169,13 @@ int ESC_getPeriod()
 {
   uint32_t count, current, previous = micros();
   boolean same = false;
-  for(count = 0; count < 1000;)
+  for(count = 0; count < 100;)
   {
-    if((PIND & (1 << 3)) && same){
+    if(bitRead(PIND,3) && same){
       count++; 
       same = true;
     }
-    else if(!(PIND & (1 << 3)) && same)
+    else if(!bitRead(PIND,3) && same)
       same = false;
   }
   current = micros();
@@ -182,13 +189,4 @@ boolean RPM_notconstant()
   delta = ESC_getPeriod() - samp1;
   return (delta >= ESC_tol);
 }
-
-
-
-
-
-
-
-
-
 
