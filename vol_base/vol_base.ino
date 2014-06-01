@@ -25,11 +25,30 @@ void setup()
   //Motor start and ramp up;
   ESC.attach(ESC_Out);
   ESC.write(ESC_Arm);
-  delay(5000);              //Wait for ESC to arm;
+  delay(6000);              //Wait for ESC to arm;
   ESC.write(ESC_speed);     //Send speed to ESC;
-  delay(15000);
+  delay(20000);
   digitalWrite(LED_sync, HIGH);
   delay(15000);
+  
+  uint16_t SQUARE1[] = {0, 2, 5, 10, 20, 25, 27};
+  uint16_t SQUARE2[] = {16,32,64,128,128,64,32};
+  
+  for(int i = 0; i < 4; i++)
+  {
+    for(int k = 0; k <7 ; k++)
+    {
+      update_onboard(SQUARE1[k] + 30*i, 2, SQUARE2[k]);
+      update_onboard(SQUARE1[k] + 30*i, 10, SQUARE2[k]);
+    }
+    update_onboard(30*i, 3, 16);
+    update_onboard(30*i, 4, 16);
+    update_onboard(30*i, 5, 16);
+    update_onboard(30*i, 6, 16);
+    update_onboard(30*i, 7, 16);
+    update_onboard(30*i, 8, 16);
+    update_onboard(30*i, 9, 16);
+  }
   
   uint16_t NOPE[][29] = {
     {
@@ -71,6 +90,7 @@ void setup()
     {1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1},
     {1,1,1,1,1,0,0,0,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1},
   };
+  /*
   for(int i = 0; i < 5; i++)
   {
     for(int k = 0; k < 40; k++)
@@ -96,7 +116,7 @@ void setup()
   */
   digitalWrite(LED_sync, HIGH);
   delay(2000); 
-  digitalWrite(LED_sync, LOW);
+  //digitalWrite(LED_sync, LOW);
   //digitalWrite(LED_sync, LOW);
 }
 
@@ -110,6 +130,7 @@ void update_onboard(uint8_t timeslice, uint8_t layer, uint16_t newval) //Update 
   Ctransfer(16, newval);      //Transfer new value;
   Ctransfer(7, (num_slices - num_slices/8*(layer%8) + timeslice)%num_slices);//num_slices - num_slices/8*(layer%8) + timeslice);    //Transfer timeslice coordinate with offsets;
   Ctransfer(3, layer%onboard_num_layers);        //Transfer layer coordinate;
+  delay(40);
 }
 
 void Ctransfer(uint8_t bitlength, uint16_t val)
@@ -120,6 +141,7 @@ void Ctransfer(uint8_t bitlength, uint16_t val)
       PORTC |= (1 << 0);
     else
       PORTC &= ~(1 << 0);
+      delayMicroseconds(4);
     PORTC &= ~(1 << tierport);
     PORTC |= (1 << tierport);
     delayMicroseconds(16);

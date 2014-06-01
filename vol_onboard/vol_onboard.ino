@@ -73,7 +73,7 @@ void setup()
   attachInterrupt(1, ESC_getPeriod, RISING);
   delay(10000);
   delay_slice = ESC_period/100;
-  delay_degree = (delay_slice - delay_overhead)/num_slices; //# Microseconds;
+  delay_degree = 8 + (delay_slice - delay_overhead)/num_slices; //# Microseconds;
 
   /*
   for(int i = 0; i < num_layers; i++)
