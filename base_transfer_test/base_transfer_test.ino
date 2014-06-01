@@ -7,6 +7,9 @@ uint8_t time = 100;
 uint8_t lay = 3;
 uint16_t input = 500;
 
+int num_slices = 104;
+int onboard_num_layers = 5;
+
 void setup()
 {
   pinMode(A0, OUTPUT);      //Outbound CLOCK pin;
@@ -26,10 +29,10 @@ void loop()
 uint8_t bitcount;
 void update_onboard(uint8_t timeslice, uint8_t layer, uint16_t newval) //Update coordinate of onboard arduino
 {
-  tierport = layer/5;           //Tier 0 is PC0, Tier 1 is PC1, Tier 2 is PC2, Clock is PC3; (Analog Pins);
-  Ctransfer(7, timeslice);      //Transfer timeslice coordinate;
-  Ctransfer(3, layer);          //Transfer layer coordinate;
-  Ctransfer(16, newval);
+  tierport = layer/onboard_num_layers + 1;         //Tier 0 is PC0, Tier 1 is PC1, Tier 2 is PC2, Clock is PC3; (Analog Pins);
+  Ctransfer(16, newval);      //Transfer new value;
+  Ctransfer(7, (timeslice - num_slices/8*(layer%4))%num_slices);    //Transfer timeslice coordinate with offsets;
+  Ctransfer(3, layer%onboard_num_layers);        //Transfer layer coordinate;
 }
 
 void Ctransfer(uint8_t bitlength, uint16_t val)
