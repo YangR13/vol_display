@@ -116,12 +116,21 @@ void setup()
   */
   digitalWrite(LED_sync, HIGH);
   delay(2000); 
-  //digitalWrite(LED_sync, LOW);
+  digitalWrite(LED_sync, LOW);
   //digitalWrite(LED_sync, LOW);
 }
 
 void loop()
 {
+  delay(50000);
+  realign();
+}
+
+void realign()
+{
+  digitalWrite(LED_sync, HIGH);
+  delay(500);
+  digitalWrite(LED_sync, LOW);
 }
 
 void update_onboard(uint8_t timeslice, uint8_t layer, uint16_t newval) //Update coordinate of onboard arduino
