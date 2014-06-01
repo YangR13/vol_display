@@ -1,7 +1,7 @@
-int num_slices = 104;
+int num_slices = 120;
 int num_half = num_slices/2;
 int num_layers = 5;
-int ESC_tol = 1000;  //Maximum tolerated variation in rotational period in micros();
+int ESC_tol = 10000;  //Maximum tolerated variation in rotational period in micros();
 
 uint16_t delay_overhead;  //Time it takes to run output all data;
 uint16_t delay_degree = 1;    //Time needed to wait between each shiftout;
@@ -17,14 +17,17 @@ volatile uint8_t timeslice;          //Global storage variable for new data coor
 volatile uint8_t layer;              //Global Storage variable for new data coordinate;
 volatile uint16_t newval;            //Global Storage variable for new data value;
 
-volatile uint16_t data_array[104][5];    //Initialize data array with all zeros.
+volatile uint16_t data_array[120][5];    //Initialize data array with all zeros.
 //Format:    data_array[timeslice][layer] = {data_value @ location};
+
+boolean store;
+volatile long ESC_period;
 
 //Function Prototypes
 void slice_reset();        //Resets slice count after each rotation. Interrupt Routine;
 void Creceive();           //WARNING: HARDCODED PINS; Receives coordinate updates. Interrupt Routine;
 void CShiftOut(uint16_t);  //WARNING: HARDCODED PINS;
-int ESC_getPeriod();       //Returns the time required for a certain number of rotations;
+void ESC_getPeriod();       //Returns the time required for a certain number of rotations;
 boolean RPM_notconstant();     //Checks if angular speed has stabilized;
 
 void setup()
@@ -47,9 +50,9 @@ void setup()
   }
 
   //Time the loop() function to determine overhead;
-  long period;
-  long current = micros();
-
+  volatile long period;
+  volatile long current = micros();
+  //Serial.begin(9600);
   loop();
 
   for(int k = 0; k < num_slices; k++)
@@ -57,30 +60,37 @@ void setup()
     for(int i = 0; i < num_layers; i++)
       data_array[k][i] = 0;
   }
-  
   for(int k = 0; k < 100; k++)
     loop();
   period = micros() - current;
   delay_overhead = period/100;
-
+  //Serial.println(delay_overhead);
   //RPM Sensing and delay calculations;
-  boolean store = bitRead(PIND, 3);
-  while(bitRead(PIND, 3) == store);    //Wait till there's a change (so it's actually spinning?);
-  while(RPM_notconstant());            //Wait until RPM is ~constant;
-  delay_slice = ESC_getPeriod()/1000;
+  int store = bitRead(PIND, 3);
+  while(bitRead(PIND,3) == store);
+  //while(RPM_notconstant());            //Wait until RPM is ~constant;
+  //Serial.println(ESC_getPeriod());
+  attachInterrupt(1, ESC_getPeriod, RISING);
+  delay(10000);
+  delay_slice = ESC_period/100;
   delay_degree = (delay_slice - delay_overhead)/num_slices; //# Microseconds;
 
+  /*
+  for(int i = 0; i < num_layers; i++)
+   data_array[0][i] = 3;
+   */
   if(delay_degree <= 1)     //Prevent negative or 0 values;
     delay_degree = 1;
 
   attachInterrupt(0, Creceive, RISING);    //Interrupt to pulse clock and input data;
-  attachInterrupt(1, reset, RISING); //Interrupt to reset at each rotation;
+  //attachInterrupt(1, reset, RISING); //Interrupt to reset at each rotation;
 }
 
 void loop()
 {
   for(current_slice = 0, opposite_slice = num_half; current_slice < num_half; current_slice++, opposite_slice++)
   {
+    store = bitRead(PIND, 3);
     PORTC &= ~(1 << 1);   //Begin sending in new data;
     CShiftOut(data_array[opposite_slice][4]);
     CShiftOut(data_array[opposite_slice][3]);
@@ -94,9 +104,12 @@ void loop()
     CShiftOut(data_array[current_slice][4]);
     delayMicroseconds(delay_degree);
     PORTC |= (1 << 1);    //Display all new data;
+    if(bitRead(PIND, 3) && store == false)
+      return;
   }
   for(opposite_slice = 0; current_slice < num_slices; current_slice++, opposite_slice++)
   {
+    store = bitRead(PIND, 3);
     PORTC &= ~(1 << 1);   //Begin sending in new data;
     CShiftOut(data_array[opposite_slice][4]);
     CShiftOut(data_array[opposite_slice][3]);
@@ -110,45 +123,50 @@ void loop()
     CShiftOut(data_array[current_slice][4]);
     delayMicroseconds(delay_degree);
     PORTC |= (1 << 1);    //Display all new data;
+    if(bitRead(PIND, 3) && store == false)
+      return;
   }
 }
 
 void reset()
 {
-  current_slice = num_slices;    //Kicks current_slice to the end, breaking all display loops.
+  current_slice = 104;    //Kicks current_slice to the end, breaking all display loops.
 }
 
 void Creceive()
 {
   if(bit_in_count < 16)           //Write to updated value;
   {
-    bitWrite(newval, bit_in_count, (PINC & (1 << 3)));
+    bitWrite(newval, bit_in_count, bitRead(PINC, 3));
     bit_in_count++;
     return;
   }
   else if(bit_in_count < 23)     //Write to slice coordinate;
   {
-    bitWrite(timeslice, (bit_in_count - 16), (PINC & (1 << 3)));
+    bitWrite(timeslice, (bit_in_count - 16), bitRead(PINC, 3));
     bit_in_count++;
     return;
   }
   else if(bit_in_count < 25)     //Write to layer coordinate;
   {
-    bitWrite(layer, (bit_in_count - 19), (PINC & (1 << 3)));
+    bitWrite(layer, (bit_in_count - 23), bitRead(PINC, 3));
     bit_in_count++;
     return;
   }
   else
   {
-    bitWrite(layer, (bit_in_count - 19), (PINC & (1 << 3))); //Finish writing to layer;
+    bitWrite(layer, (bit_in_count - 23), bitRead(PINC, 3)); //Finish writing to layer;
     bit_in_count = 0;
 
     //Update data_array;
     data_array[timeslice][layer] = newval;
-
-    //timeslice = 0;  These "clear variables" theoretically shouldn't be needed.
-    //layer = 0;
-    //newval = 0;
+    /*
+    Serial.print(timeslice);
+     Serial.print(" ");
+     Serial.print(layer);
+     Serial.print(" ");
+     Serial.println(newval);
+     */
   }
 }
 
@@ -165,28 +183,30 @@ void CShiftOut(uint16_t val)
   }
 }
 
-int ESC_getPeriod()
+volatile uint8_t count_RPM = 0;
+volatile long current;
+
+void ESC_getPeriod()
 {
-  uint32_t count, current, previous = micros();
-  boolean same = false;
-  for(count = 0; count < 100;)
+  if(count_RPM == 0)
+    current = micros();
+  if(count_RPM < 100)
+    count_RPM++;
+  else
   {
-    if(bitRead(PIND,3) && same){
-      count++; 
-      same = true;
-    }
-    else if(!bitRead(PIND,3) && same)
-      same = false;
+    ESC_period = micros() - current;
+    detachInterrupt(1);
   }
-  current = micros();
-  return current - previous;
 }
 
+/*
 boolean RPM_notconstant()
-{
-  uint32_t delta;
-  uint32_t samp1 = ESC_getPeriod();
-  delta = ESC_getPeriod() - samp1;
-  return (delta >= ESC_tol);
-}
+ {
+ uint32_t delta;
+ uint32_t samp1 = ESC_getPeriod();
+ delta = ESC_getPeriod() - samp1;
+ return (delta >= ESC_tol);
+ }
+ */
+
 
