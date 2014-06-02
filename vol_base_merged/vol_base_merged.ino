@@ -1,28 +1,22 @@
 #include <Servo.h>
 Servo ESC;
 
-const int vol_slices = 104;
+const int vol_slices = 120;
 const int vol_layers = 15;
 const int onboard_num_layers = 5;
-int LED_sync = 3;
-
-typedef struct{
-  uint16_t data;
-  int slice;
-  int layer;
-} 
-Spoke;
-
-Spoke SpokeArr[vol_slices];
 
 //Define pins;
 int ESC_Out = 11;
+int LED_sync = 3;
 
 //Define variables;
 int ESC_Arm = 10;
 int ESC_speed = 87;
 
 uint8_t bitcount, tierport;
+
+//Keeps track of data packages recieved from Serial
+int packageCount = 0;
 
 void setup()
 {
@@ -95,9 +89,9 @@ void update_onboard(uint8_t timeslice, uint8_t layer, uint16_t newval) //Update 
 {
   tierport = layer/onboard_num_layers + 1;         //Tier 0 is PC0, Tier 1 is PC1, Tier 2 is PC2, Clock is PC3; (Analog Pins);
   Ctransfer(16, newval);      //Transfer new value;
-  Ctransfer(7, (vol_slices - vol_slices/8*(layer%8) + timeslice)%vol_slices);//Transfer timeslice coordinate with offsets;
+  Ctransfer(7, (vol_slices - vol_slices/8*(layer%8) + timeslice)%vol_slices);//num_slices - num_slices/8*(layer%8) + timeslice);    //Transfer timeslice coordinate with offsets;
   Ctransfer(3, layer%onboard_num_layers);        //Transfer layer coordinate;
-  delay(30);
+  delay(50);
 }
 
 void Ctransfer(uint8_t bitlength, uint16_t val)
@@ -108,18 +102,16 @@ void Ctransfer(uint8_t bitlength, uint16_t val)
       PORTC |= (1 << 0);
     else
       PORTC &= ~(1 << 0);
-    delayMicroseconds(4);
+      delayMicroseconds(4);
     PORTC &= ~(1 << tierport);
     PORTC |= (1 << tierport);
-    delayMicroseconds(8);
+    delayMicroseconds(16);
   }
 }
 
 void serialEvent() 
 {
   int packageSize = 0;
-  int numSpokes = 0;
-  int currentLayer = 0;
   byte serialBuffer[4];
 
   Serial.print("serialEvent triggered!\n");
@@ -129,60 +121,28 @@ void serialEvent()
     packageSize = Serial.readBytes((char *)serialBuffer, 4);
     if(packageSize == 0) break;
 
-    if(serialBuffer[3] != currentLayer) 
-    {
-      printLayer(numSpokes);
-      sendLayer(currentLayer, &numSpokes);
-      currentLayer = serialBuffer[3]; 
-    }
-    Serial.print(numSpokes);
-    SpokeArr[numSpokes].data = (uint16_t) serialBuffer[0] | ((uint16_t) serialBuffer[1] << 8);
-    SpokeArr[numSpokes].slice = serialBuffer[2];
-    SpokeArr[numSpokes].layer = serialBuffer[3];
-    numSpokes++;
-  }
-  printLayer(numSpokes);
-  sendLayer(currentLayer, &numSpokes);
-
-  Serial.print("Reached end of data scan\n");
-}
-
-void printLayer(int numSpokes) 
-{
-  Serial.print("Number of spokes stored: ");
-  Serial.print(numSpokes);
-  Serial.print("\n");
-
-  for(int i=0; i<numSpokes; i++) {
+    uint16_t data = (uint16_t) serialBuffer[0] | ((uint16_t) serialBuffer[1] << 8);
+    int slice = serialBuffer[2];
+    int layer = serialBuffer[3];
+    
+    update_onboard(slice, layer, data);
+    
     Serial.print("Data: ");
-    Serial.print(SpokeArr[i].data, BIN);
+    Serial.print(data, BIN);
     Serial.print("\nSlice: ");
-    Serial.print(SpokeArr[i].slice);
+    Serial.print(slice);
     Serial.print("\nLayer: ");
-    Serial.print(SpokeArr[i].layer);
+    Serial.print(layer);
     Serial.print("\n");
+    
+    packageCount++;
   }
-}
-
-void sendLayer(int currentLayer, int *numSpokes) 
-{
-  digitalWrite(LED_sync, LOW);
-  Serial.print("Sending layer: ");
-  Serial.print(currentLayer);
-  Serial.print("\n");
-  //for loop sending Spokes to Bareduinos
-  Serial.print("Wiping SpokeArr\n");
-  delay(2000);
-  for(int i; i<vol_slices; i++) 
-  {
-    if(SpokeArr[i].data != 0)
-      update_onboard(SpokeArr[i].slice, SpokeArr[i].layer, SpokeArr[i].data);
-    SpokeArr[i].data = 0;
-    SpokeArr[i].slice = 0;
-    SpokeArr[i].layer = 0;
-  }
-  *numSpokes = 0;
   display_realign();
+  Serial.print("Number of data packages recieved: ");
+  Serial.print(packageCount);
+  Serial.print("\n");
+
+  Serial.print("Reached end of data\n");
 }
 
 

@@ -1,6 +1,6 @@
-FILE: cube.txt
+FILE: bigcube.txt
 
-vol_slices: 104
+vol_slices: 120
 vol_layers: 15
 vol_radius: 16
 
