@@ -108,7 +108,7 @@ void Ctransfer(uint8_t bitlength, uint16_t val)
       PORTC |= (1 << 0);
     else
       PORTC &= ~(1 << 0);
-    delay
+    delayMicroseconds(4);
     PORTC &= ~(1 << tierport);
     PORTC |= (1 << tierport);
     delayMicroseconds(8);
@@ -182,9 +182,7 @@ void sendLayer(int currentLayer, int *numSpokes)
     SpokeArr[i].layer = 0;
   }
   *numSpokes = 0;
-  digitalWrite(LED_sync, HIGH);
-  delay(2000);
-  digitalWrite(LED_sync, LOW);
+  display_realign();
 }
 
 
