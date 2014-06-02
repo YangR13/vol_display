@@ -108,6 +108,7 @@ void Ctransfer(uint8_t bitlength, uint16_t val)
       PORTC |= (1 << 0);
     else
       PORTC &= ~(1 << 0);
+    delay
     PORTC &= ~(1 << tierport);
     PORTC |= (1 << tierport);
     delayMicroseconds(8);
