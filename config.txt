@@ -1,4 +1,4 @@
-FILE: pattern0.txt
+FILE: cube.txt
 
 vol_slices: 104
 vol_layers: 15
