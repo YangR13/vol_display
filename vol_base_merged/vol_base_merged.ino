@@ -137,7 +137,7 @@ void serialEvent()
     
     packageCount++;
   }
-  display_realign();
+  //display_realign();
   Serial.print("Number of data packages recieved: ");
   Serial.print(packageCount);
   Serial.print("\n");

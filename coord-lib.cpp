@@ -3,6 +3,7 @@
 
 #include "coord-lib.h"
 extern int vol_slices;
+extern int vol_radius;
 
 /* -----------------------CARTESIAN COORDINATE POINT----------------------- */
 CartPnt::CartPnt(int height_, int x_, int y_) {
@@ -49,9 +50,9 @@ void PolPnt::setDeg(int deg_) {deg = deg_;}
 void PolPnt::setRadius(int radius_) {radius = radius_;}
 
 void PolPnt::printCoord() const {
-	printf("(Polar) height: %d, deg: %d, radius: %d", height, deg, radius);
+	printf("(Polar) height: %d, deg: %d, slice: %d, radius: %d", height, (int)(deg * 360.0 /vol_slices), deg, radius);
 }
 
 int PolPnt::toData() const {
-	return (int) pow(2, radius-1);
+	return (int) pow(2, vol_radius - (radius-1));
 }
