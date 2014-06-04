@@ -173,15 +173,15 @@ uint16_t **createSerialData(int numCoords, PolPnt **pArr) {
 
 void printSerialData(uint16_t **serialData) {
 	int count = 0;
-	for(int j=0; j<vol_layers; j++) {
-		for(int i=0; i<vol_slices; i++) {
+	for(int i=0; i<vol_slices; i++) {
+		for(int j=0; j<vol_layers; j++) {
 			if(serialData[i][j] != 0) {
-				printf("Data at layer %d and slice %d is: %d\n", j, i, serialData[i][j]);
+				printf("Data at slice %d and layer %d is: %d\n", i, j, serialData[i][j]);
 				count++;
 			}
 		}
 	}
-	printf("\nNumber of data packages: %d\n\n", count);
+	printf("\nNumber of data packages created: %d\n\n", count);
 }
 
 
@@ -197,11 +197,14 @@ void sendSerialData(uint16_t **serialData) {
 				bytecount += write(fd, &serialData[i][j], 2);
 				bytecount += write(fd, &i, 1);
 				bytecount += write(fd, &j, 1);
+				
+				if(bytecount % (5 * 4) == 0) sleep(1);
 			}
-			if(i % 25 == 0) sleep(1);
 		}
 	}
 	printf("Data transfer complete\n");
-	printf("Bytes transfered: %d\n", bytecount);
+	printf("Bytes transfered: %d\n\n", bytecount);
+	
+	printf("Number of data packages sent: %d\n\n", bytecount / 4);
 }
 

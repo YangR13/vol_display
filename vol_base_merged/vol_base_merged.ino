@@ -1,4 +1,7 @@
 #include <Servo.h>
+
+#define TESTING_MODE
+
 Servo ESC;
 
 const int vol_slices = 120;
@@ -15,9 +18,6 @@ int ESC_speed = 87;
 
 uint8_t bitcount, tierport;
 
-//Keeps track of data packages recieved from Serial
-int packageCount = 0;
-
 void setup()
 {
   pinMode(A0, OUTPUT);      //Outbound CLOCK pin;
@@ -25,6 +25,8 @@ void setup()
   pinMode(A2, OUTPUT);      //Outbound Tier 2 pin;
   pinMode(A3, OUTPUT);      //Outbound Tier 3 pin;
   pinMode(3, OUTPUT);
+  
+  #ifndef TESTING_MODE
   //Motor start and ramp up;
   ESC.attach(ESC_Out);
   ESC.write(ESC_Arm);
@@ -71,7 +73,10 @@ void setup()
     update_onboard(30*i, 8, 0);
     update_onboard(30*i, 9, 0);
   }
+  #endif /* !TESTING_MODE*/
+  
   Serial.begin(9600);
+  Serial.print("Ready to recieve data!\n");
 }
 
 void loop()
@@ -114,14 +119,27 @@ void Ctransfer(uint8_t bitlength, uint16_t val)
 
 void serialEvent() 
 {
+  int packageCount = 0;
   Serial.print("serialEvent triggered!\n");
 
   while(true) 
   {
-    if(relayPackage() < 4) break;
-    packageCount++;
+    while(Serial.available() >= 4) {
+      relayPackage();
+      packageCount++;
+    }
+    delay(2000);
+    if(Serial.available() < 4) break;
   }
-  //display_realign();
+  //Flushes extra(?) data in case of error
+  if(Serial.available() != 0) {
+    Serial.print("ERROR: Extra data. Flushing ");
+    Serial.print(Serial.available());
+    Serial.print(" bytes from Serial buffer\n");
+    Serial.flush();
+    }
+      
+  //display_realign();)
   Serial.print("Number of data packages recieved: ");
   Serial.print(packageCount);
   Serial.print("\n");
@@ -130,26 +148,33 @@ void serialEvent()
 }
 
 int relayPackage() {
-  volatile int packageSize = 0;
-  volatile byte serialBuffer[4];
+  int packageSize = 0;
+  byte serialBuffer[4];
   
+  //This pulls 4 bytes out of the buffer no matter how many bytes are in it
   packageSize = Serial.readBytes((char *)serialBuffer, 4);
+  
+  //If it sees that it pulled less than 4 bytes, it returns and ends. It doesn't send.
   if(packageSize < 4) return packageSize;
   
-  volatile uint16_t data = (uint16_t) serialBuffer[0] | ((uint16_t) serialBuffer[1] << 8);
-  volatile int slice = serialBuffer[2];
-  volatile int layer = serialBuffer[3];
+  //So in that case it would misalign the buffer and the data would look corrupted
+  
+  uint16_t data = (uint16_t) serialBuffer[0] | ((uint16_t) serialBuffer[1] << 8);
+  int slice = serialBuffer[2];
+  int layer = serialBuffer[3];
 
   update_onboard(slice, layer, data);
-
-  Serial.print("Data: ");
-  Serial.print(data, BIN);
-  Serial.print("\nSlice: ");
+  
+  #ifdef TESTING_MODE
+  Serial.print("Slice: ");
   Serial.print(slice);
-  Serial.print("\nLayer: ");
+  Serial.print(" | Layer: ");
   Serial.print(layer);
+  Serial.print(" | Data: ");
+  Serial.print(data, DEC);
   Serial.print("\n");
-    
+  #endif /* TESTING_MODE */
+  
   return packageSize;
 }
 
