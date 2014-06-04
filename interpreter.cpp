@@ -198,7 +198,7 @@ void sendSerialData(uint16_t **serialData) {
 				bytecount += write(fd, &i, 1);
 				bytecount += write(fd, &j, 1);
 			}
-			if(i % 10 == 0) sleep(1);
+			if(i % 25 == 0) sleep(1);
 		}
 	}
 	printf("Data transfer complete\n");

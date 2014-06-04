@@ -113,30 +113,11 @@ void Ctransfer(uint8_t bitlength, uint16_t val)
 
 void serialEvent() 
 {
-  int packageSize = 0;
-  byte serialBuffer[4];
-
   Serial.print("serialEvent triggered!\n");
 
   while(true) 
   {
-    packageSize = Serial.readBytes((char *)serialBuffer, 4);
-    if(packageSize == 0) break;
-
-    uint16_t data = (uint16_t) serialBuffer[0] | ((uint16_t) serialBuffer[1] << 8);
-    int slice = serialBuffer[2];
-    int layer = serialBuffer[3];
-
-    update_onboard(slice, layer, data);
-
-    Serial.print("Data: ");
-    Serial.print(data, BIN);
-    Serial.print("\nSlice: ");
-    Serial.print(slice);
-    Serial.print("\nLayer: ");
-    Serial.print(layer);
-    Serial.print("\n");
-
+    if(relayPackage() < 4) break;
     packageCount++;
   }
   //display_realign();
@@ -147,5 +128,27 @@ void serialEvent()
   Serial.print("Reached end of data\n");
 }
 
+int relayPackage() {
+  volatile int packageSize = 0;
+  volatile byte serialBuffer[4];
+  
+  packageSize = Serial.readBytes((char *)serialBuffer, 4);
+  if(packageSize < 4) return packageSize;
+  
+  volatile uint16_t data = (uint16_t) serialBuffer[0] | ((uint16_t) serialBuffer[1] << 8);
+  volatile int slice = serialBuffer[2];
+  volatile int layer = serialBuffer[3];
 
+  update_onboard(slice, layer, data);
+
+  Serial.print("Data: ");
+  Serial.print(data, BIN);
+  Serial.print("\nSlice: ");
+  Serial.print(slice);
+  Serial.print("\nLayer: ");
+  Serial.print(layer);
+  Serial.print("\n");
+    
+  return packageSize;
+}
 
