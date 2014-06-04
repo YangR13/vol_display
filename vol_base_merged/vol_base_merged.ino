@@ -30,7 +30,7 @@ void setup()
   ESC.write(ESC_Arm);
   delay(5000);              //Wait for ESC to arm;
   ESC.write(ESC_speed);     //Send speed to ESC;
-  delay(15000);
+  delay(20000);
   digitalWrite(LED_sync, HIGH);
   delay(15000);
 
@@ -77,6 +77,7 @@ void setup()
 void loop()
 {
   //Periodically realign the display; causes jumping but the Arduinos will unsync.
+  delay(50000);
   display_realign();
 }
 
