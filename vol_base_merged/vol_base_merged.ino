@@ -30,13 +30,15 @@ void setup()
   ESC.write(ESC_Arm);
   delay(5000);              //Wait for ESC to arm;
   ESC.write(ESC_speed);     //Send speed to ESC;
-  delay(20000);
+  delay(15000);
   digitalWrite(LED_sync, HIGH);
   delay(15000);
-  
-  uint16_t SQUARE1[] = {0, 2, 5, 10, 20, 25, 27};
-  uint16_t SQUARE2[] = {16,32,64,128,128,64,32};
-  
+
+  uint16_t SQUARE1[] = {
+    0, 2, 5, 10, 20, 25, 27  };
+  uint16_t SQUARE2[] = {
+    16,32,64,128,128,64,32  };
+
   for(int i = 0; i < 4; i++)
   {
     for(int k = 0; k <7 ; k++)
@@ -89,7 +91,7 @@ void update_onboard(uint8_t timeslice, uint8_t layer, uint16_t newval) //Update 
 {
   tierport = layer/onboard_num_layers + 1;         //Tier 0 is PC0, Tier 1 is PC1, Tier 2 is PC2, Clock is PC3; (Analog Pins);
   Ctransfer(16, newval);      //Transfer new value;
-  Ctransfer(7, (vol_slices - vol_slices/8*(layer%8) + timeslice)%vol_slices);//num_slices - num_slices/8*(layer%8) + timeslice);    //Transfer timeslice coordinate with offsets;
+  Ctransfer(7, (vol_slices - vol_slices/8*(layer%8) + timeslice)%vol_slices);    //Transfer timeslice coordinate with offsets;
   Ctransfer(3, layer%onboard_num_layers);        //Transfer layer coordinate;
   delay(50);
 }
@@ -102,7 +104,7 @@ void Ctransfer(uint8_t bitlength, uint16_t val)
       PORTC |= (1 << 0);
     else
       PORTC &= ~(1 << 0);
-      delayMicroseconds(4);
+    delayMicroseconds(4);
     PORTC &= ~(1 << tierport);
     PORTC |= (1 << tierport);
     delayMicroseconds(16);
@@ -124,9 +126,9 @@ void serialEvent()
     uint16_t data = (uint16_t) serialBuffer[0] | ((uint16_t) serialBuffer[1] << 8);
     int slice = serialBuffer[2];
     int layer = serialBuffer[3];
-    
+
     update_onboard(slice, layer, data);
-    
+
     Serial.print("Data: ");
     Serial.print(data, BIN);
     Serial.print("\nSlice: ");
@@ -134,7 +136,7 @@ void serialEvent()
     Serial.print("\nLayer: ");
     Serial.print(layer);
     Serial.print("\n");
-    
+
     packageCount++;
   }
   //display_realign();
@@ -144,5 +146,6 @@ void serialEvent()
 
   Serial.print("Reached end of data\n");
 }
+
 
 
