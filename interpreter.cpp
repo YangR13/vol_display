@@ -191,14 +191,14 @@ void sendSerialData(uint16_t **serialData) {
 	if(fd == -1) return;
 	
 	printf("Sending serial data...\n");
-	for(int j=0; j<vol_layers; j++) {
-		for(int i=0; i<vol_slices; i++) {
+	for(int i=0; i<vol_slices; i++) {
+		for(int j=0; j<vol_layers; j++) {
 			if(serialData[i][j] != 0) {
 				bytecount += write(fd, &serialData[i][j], 2);
 				bytecount += write(fd, &i, 1);
 				bytecount += write(fd, &j, 1);
 			}
-			if(i % 20 == 0) sleep(1);
+			if(i % 10 == 0) sleep(1);
 		}
 	}
 	printf("Data transfer complete\n");
