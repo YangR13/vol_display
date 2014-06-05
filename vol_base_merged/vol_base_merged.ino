@@ -1,6 +1,6 @@
 #include <Servo.h>
 
-#define TESTING_MODE
+//#define TESTING_MODE
 
 Servo ESC;
 
@@ -17,6 +17,8 @@ int ESC_Arm = 10;
 int ESC_speed = 87;
 
 uint8_t bitcount, tierport;
+
+boolean dataReady = false;
 
 void setup()
 {
@@ -82,8 +84,11 @@ void setup()
 void loop()
 {
   //Periodically realign the display; causes jumping but the Arduinos will unsync.
-  delay(50000);
-  display_realign();
+  if(dataReady) {
+    delay(10000);
+    display_realign();
+  }
+  if(Serial.available() > 0) dataReady = true;
 }
 
 void display_realign()
@@ -150,14 +155,8 @@ void serialEvent()
 int relayPackage() {
   int packageSize = 0;
   byte serialBuffer[4];
-  
-  //This pulls 4 bytes out of the buffer no matter how many bytes are in it
   packageSize = Serial.readBytes((char *)serialBuffer, 4);
-  
-  //If it sees that it pulled less than 4 bytes, it returns and ends. It doesn't send.
   if(packageSize < 4) return packageSize;
-  
-  //So in that case it would misalign the buffer and the data would look corrupted
   
   uint16_t data = (uint16_t) serialBuffer[0] | ((uint16_t) serialBuffer[1] << 8);
   int slice = serialBuffer[2];
@@ -165,7 +164,6 @@ int relayPackage() {
 
   update_onboard(slice, layer, data);
   
-  #ifdef TESTING_MODE
   Serial.print("Slice: ");
   Serial.print(slice);
   Serial.print(" | Layer: ");
@@ -173,7 +171,6 @@ int relayPackage() {
   Serial.print(" | Data: ");
   Serial.print(data, DEC);
   Serial.print("\n");
-  #endif /* TESTING_MODE */
   
   return packageSize;
 }
