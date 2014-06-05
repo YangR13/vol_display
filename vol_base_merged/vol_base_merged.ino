@@ -82,7 +82,7 @@ void setup()
 void loop()
 {
   //Periodically realign the display; causes jumping but the Arduinos will unsync.
-  delay(50000);
+  //delay(50000);
   display_realign();
 }
 
