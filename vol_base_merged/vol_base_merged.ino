@@ -84,11 +84,13 @@ void setup()
 void loop()
 {
   //Periodically realign the display; causes jumping but the Arduinos will unsync.
+<<<<<<< HEAD
   if(dataReady) {
     delay(10000);
     display_realign();
   }
   if(Serial.available() > 0) dataReady = true;
+>>>>>>> FETCH_HEAD
 }
 
 void display_realign()
