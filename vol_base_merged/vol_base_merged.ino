@@ -18,8 +18,6 @@ int ESC_speed = 87;
 
 uint8_t bitcount, tierport;
 
-boolean dataReady = false;
-
 void setup()
 {
   pinMode(A0, OUTPUT);      //Outbound CLOCK pin;
@@ -84,11 +82,12 @@ void setup()
 void loop()
 {
   //Periodically realign the display; causes jumping but the Arduinos will unsync.
-  if(dataReady) {
-    delay(10000);
-    display_realign();
+  for(int i=0; i<19; i++) {
+     if(Serial.available() > 0) readSerialData(); 
+     delay(500);
   }
-  if(Serial.available() > 0) dataReady = true;
+  Serial.print("Realigning display...\n");
+  display_realign();
 }
 
 void display_realign()
@@ -122,10 +121,10 @@ void Ctransfer(uint8_t bitlength, uint16_t val)
   }
 }
 
-void serialEvent() 
+void readSerialData() 
 {
   int packageCount = 0;
-  Serial.print("serialEvent triggered!\n");
+  Serial.print("Serial.available() triggered!\n");
 
   while(true) 
   {
@@ -142,14 +141,13 @@ void serialEvent()
     Serial.print(Serial.available());
     Serial.print(" bytes from Serial buffer\n");
     Serial.flush();
-    }
-      
-  //display_realign();)
+  }
+  
+  Serial.print("\nReached end of data.\n");
   Serial.print("Number of data packages recieved: ");
   Serial.print(packageCount);
-  Serial.print("\n");
+  Serial.print("\n\n");
 
-  Serial.print("Reached end of data\n");
 }
 
 int relayPackage() {
