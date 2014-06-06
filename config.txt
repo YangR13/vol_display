@@ -1,8 +1,9 @@
-FILE: twister.txt
+FILE: ucsbieee.txt
+DISPLAY_WIPE: 1
 
 vol_slices: 120
 vol_layers: 15
 vol_radius: 16
 
-serialport: /dev/tty.usbmodem1411
+serialport: /dev/tty.usbmodem1421
 baudrate: 9600

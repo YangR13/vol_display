@@ -22,6 +22,7 @@ void sendSerialData(uint16_t **serialData);
 
 // GLOBAL VARIABLES
 char FILENAME[32];
+int display_wipe;
 
 int vol_slices;
 int vol_layers;
@@ -76,6 +77,9 @@ int scanConfigFile() {
 		fscanf(fp, "%s ", parser);
 		if(strcmp(parser, "FILE:") == 0) {
 			fscanf(fp, "%s ", FILENAME);
+		}
+		if(strcmp(parser, "DISPLAY_WIPE:") == 0) {
+			if(fscanf(fp, "%d ", &display_wipe) != 1) return 1;
 		}
 		if(strcmp(parser, "vol_slices:") == 0) {
 			if(fscanf(fp, "%d ", &vol_slices) != 1) return 1;
@@ -151,8 +155,8 @@ int scanPatternFile(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr)) {
 				
 				printf("Radius: %d\n", radius);
 				for(int half = 0; half < 2; half++) {
-					for(height = vol_layers-1; height >= 0; height--) {
-						for(slice = half*(vol_slices/2); slice < (half+1)*(vol_slices/2); slice++) {
+					for(height = 0; height < vol_layers; height++) {
+						for(slice = vol_slices/2*(half+1); slice >= (1-half)*(vol_slices/2); slice--) {
 						
 							fscanf(fp, " %c", &parser);
 							if(parser == '0') {
@@ -171,7 +175,7 @@ int scanPatternFile(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr)) {
 void printCoordinates(int numCoords, CartPnt **cArr, PolPnt **pArr) {
 	for(int i=0; i<numCoords; i++) {
 		if(*cArr == NULL) {
-			printf("N/A");
+			printf("(Cartesian) N/A");
 		} else {
 			cArr[i]->printCoord();
 		}
@@ -217,6 +221,11 @@ void sendSerialData(uint16_t **serialData) {
 	int bytecount = 0;
 	int fd = serialport_init(serialport, baudrate);
 	if(fd == -1) return;
+	
+	// clears the display if display_wipe equals 1
+	printf("display_wipe: %d\n", display_wipe);
+	write(fd, &display_wipe, 1);
+	
 	
 	printf("Sending serial data...\n");
 	for(int i=0; i<vol_slices; i++) {

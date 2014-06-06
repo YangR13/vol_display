@@ -142,6 +142,13 @@ void readSerialData()
 {
   int packageCount = 0;
   Serial.print("Serial.available() triggered!\n");
+  
+  char wipe_display[1];
+  Serial.readBytes(wipe_display, 1);
+  if(wipe_display[0] == 1) {
+    Serial.print("Wiping display!\n");
+    display_wipe();
+  }
 
   while(true) 
   {
