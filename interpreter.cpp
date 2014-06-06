@@ -21,7 +21,7 @@ void sendSerialData(uint16_t **serialData);
 // TODO LIST
 
 // GLOBAL VARIABLES
-char FILENAME[16];
+char FILENAME[32];
 
 int vol_slices;
 int vol_layers;

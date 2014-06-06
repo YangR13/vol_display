@@ -1,4 +1,4 @@
-FILE: smallcubes.txt
+FILE: prism_complex.txt
 
 vol_slices: 120
 vol_layers: 15
