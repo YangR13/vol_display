@@ -1,4 +1,4 @@
-FILE: prism_complex.txt
+FILE: twister.txt
 
 vol_slices: 120
 vol_layers: 15

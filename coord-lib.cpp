@@ -26,31 +26,33 @@ void CartPnt::printCoord() const {
 
 // Convets Cartesian Coordinates to Polar Coordinates
 PolPnt * CartPnt::toPolar() const {
-	int deg = (int)(atan2(y,x) * 180 / M_PI) * (vol_slices/360.0);
-	if(deg < 0) deg+=vol_slices;
+	int slice = (int)(atan2(y,x) * 180 / M_PI) * (vol_slices/360.0);
+	if(slice < 0) slice += vol_slices;
 	int radius = (int)round((sqrt(pow(x,2)+pow(y,2))));
 	
-	PolPnt *p = new PolPnt(height, deg, radius);
+	PolPnt *p = new PolPnt(height, slice, radius);
 	return p;
 }
 
 /* -------------------------POLAR COORDINATE POINT------------------------- */
-PolPnt::PolPnt(int height_, int deg_, int radius_) {
+PolPnt::PolPnt(int height_, int slice_, int radius_) {
 	height = height_;
-	deg = deg_;
+	slice = slice_;
 	radius = radius_;
+	deg = (int)slice * (360.0/vol_slices);
 }
 
 int PolPnt::getHeight() const {return height;}
+int PolPnt::getSlice() const {return slice;}
 int PolPnt::getDeg() const {return deg;}
 int PolPnt::getRadius() const {return radius;}
 
 void PolPnt::setHeight(int height_) {height = height_;}
-void PolPnt::setDeg(int deg_) {deg = deg_;}
+void PolPnt::setSlice(int slice_) {slice = slice_;}
 void PolPnt::setRadius(int radius_) {radius = radius_;}
 
 void PolPnt::printCoord() const {
-	printf("(Polar) height: %d, deg: %d, slice: %d, radius: %d", height, (int)(deg * 360.0 /vol_slices), deg, radius);
+	printf("(Polar) height: %d, slice: %d, deg: %d, radius: %d", height, slice, deg, radius);
 }
 
 int PolPnt::toData() const {

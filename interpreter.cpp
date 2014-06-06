@@ -53,6 +53,8 @@ int main() {
 	}
 	
 	numCoords = scanPatternFile(fp, &cArr, &pArr);
+	printf("Pattern file scanned! %d coordinates found!\n", numCoords);
+	
 	printCoordinates(numCoords, cArr, pArr);
 	
 	serialData = createSerialData(numCoords, pArr);
@@ -98,21 +100,22 @@ int scanConfigFile() {
 int scanPatternFile(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr)) {
 	char type[16];
 	int numCoords = 0;
-	int height, x, y;
+	int height, x, y, slice, radius;
 	char parser;
 	
 	fscanf(fp, "%s", type);
-	
+	// CARTESIAN COORDINATE PATTERNS
 	if(strcmp(type, "TOPDOWN") == 0|| strcmp(type, "FRONTBACK") == 0) {
 		// initializing cArr to maximum possible number of coordinates
 		*cArr = new CartPnt *[vol_layers * (int)pow(2*vol_radius+1, 2)];
 		while(!feof(fp)) {
 			if(strcmp(type, "TOPDOWN") == 0) {
 				fscanf(fp, "%d", &height);
+				if(height == -100) break;
+				
 				for(y = vol_radius; y >= vol_radius*-1; y--) {
 					for(x = vol_radius*-1; x <= vol_radius; x++) {
 						fscanf(fp, " %c", &parser);
-						if(parser == 'E') break;
 						if(parser == '0' && round(sqrt(pow(x, 2)+pow(y,2))) <= vol_radius)	//IF MARKED AND WITHIN MAXIMUM RADIUS
 							(*cArr)[numCoords++] = new CartPnt(height, x, y);
 					}
@@ -120,33 +123,58 @@ int scanPatternFile(FILE *fp, CartPnt *(**cArr), PolPnt *(**pArr)) {
 			}
 			if(strcmp(type, "FRONTBACK") == 0) {			
 				fscanf(fp, "%d", &y);
+				if(y == -100) break;
+				
 				for(height = vol_layers-1; height >= 0; height--) {
 					for(x = vol_radius*-1; x <= vol_radius; x++) {
 						fscanf(fp, " %c", &parser);
 						if(parser == 'E') break;
-						if(parser == '0' && round(sqrt(pow(x, 2)+pow(y,2))) <= vol_radius)	//IF MARKED AND WITHIN MAXIMUM RADIUS
+						if(parser == '0' && round(sqrt(pow(x, 2)+pow(y,2))) <= vol_radius)	//MARKED AND WITHIN MAXIMUM RADIUS
 							(*cArr)[numCoords++] = new CartPnt(height, x, y);
 					}
 				}
 			}
-			
 		}
 		*pArr = new PolPnt *[numCoords];
 		for(int i=0; i<numCoords; i++) (*pArr)[i] = (*cArr)[i]->toPolar();
 	}
+	
+	//POLAR COORDINATE PATTERNS
 	if(strcmp(type, "OUTSIDEIN") == 0) {
-	
+		*cArr = new CartPnt *[1];
+		*pArr = new PolPnt *[vol_slices * vol_layers * vol_radius];
+		while(!feof(fp)) {
+		printf("Test2\n");
+			if(strcmp(type, "OUTSIDEIN") == 0) {
+				fscanf(fp, "%d", &radius);
+				if(radius == -100) break;
+				
+				printf("Radius: %d\n", radius);
+				for(int half = 0; half < 2; half++) {
+					for(height = vol_layers-1; height >= 0; height--) {
+						for(slice = half*(vol_slices/2); slice < (half+1)*(vol_slices/2); slice++) {
+						
+							fscanf(fp, " %c", &parser);
+							if(parser == '0') {
+								(*pArr)[numCoords++] = new PolPnt(height, slice, radius);
+							}
+						}
+					}
+				}
+			}
+		}
 	}
-	
-
-	
 	return numCoords;
 }
 
 // PRINTS CARTESIAN AND POLAR COORDINATES
 void printCoordinates(int numCoords, CartPnt **cArr, PolPnt **pArr) {
 	for(int i=0; i<numCoords; i++) {
-		cArr[i]->printCoord();
+		if(*cArr == NULL) {
+			printf("N/A");
+		} else {
+			cArr[i]->printCoord();
+		}
 		printf(" | ");
 		pArr[i]->printCoord();
 		printf("\n\n");
@@ -166,7 +194,7 @@ uint16_t **createSerialData(int numCoords, PolPnt **pArr) {
 
 	// fills 2D array with byte values from pArr
 	for(int i=0; i<numCoords; i++) {
-		serialData[pArr[i]->getDeg()][pArr[i]->getHeight()] |= pArr[i]->toData();
+		serialData[pArr[i]->getSlice()][pArr[i]->getHeight()] |= pArr[i]->toData();
 	}
 	return serialData;
 }

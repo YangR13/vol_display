@@ -30,17 +30,19 @@ class CartPnt {
 class PolPnt {
 	private:
 		int height;
+		int slice;
 		int deg;
 		int radius;
 		
 	public:
-		PolPnt(int height_, int deg_, int radius_);
+		PolPnt(int height_, int slice_, int radius_);
 		int getHeight() const;
+		int getSlice() const;
 		int getDeg() const;
 		int getRadius() const;
 		
 		void setHeight(int height_);
-		void setDeg(int deg_);
+		void setSlice(int slice_);
 		void setRadius(int radius_);
 		
 		void printCoord() const;
