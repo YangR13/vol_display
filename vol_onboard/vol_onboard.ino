@@ -130,7 +130,7 @@ void loop()
 
 void reset()
 {
-  current_slice = 104;    //Kicks current_slice to the end, breaking all display loops.
+  current_slice = 120;    //Kicks current_slice to the end, breaking all display loops.
 }
 
 void Creceive()
