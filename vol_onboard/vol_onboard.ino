@@ -17,7 +17,7 @@ volatile uint8_t timeslice;          //Global storage variable for new data coor
 volatile uint8_t layer;              //Global Storage variable for new data coordinate;
 volatile uint16_t newval;            //Global Storage variable for new data value;
 
-volatile uint16_t data_array[120][5];    //Initialize data array with all zeros.
+uint16_t data_array[120][5];    //Initialize data array with all zeros.
 //Format:    data_array[timeslice][layer] = {data_value @ location};
 
 boolean store;
@@ -158,6 +158,15 @@ void Creceive()
     bitWrite(layer, (bit_in_count - 23), bitRead(PINC, 3)); //Finish writing to layer;
     bit_in_count = 0;
 
+    if(timeslice == 120 && layer == 5)
+    {
+      for(int k = 0; k < num_slices; k++)
+      {
+        for(int i = 0; i < num_layers; i++)
+          data_array[k][i] = 0;
+      }
+      return;
+    }
     //Update data_array;
     data_array[timeslice][layer] = newval;
     /*
@@ -208,5 +217,6 @@ boolean RPM_notconstant()
  return (delta >= ESC_tol);
  }
  */
+
 
 

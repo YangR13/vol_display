@@ -58,6 +58,9 @@ void setup()
   }
   display_realign();
   delay(10000);
+  digitalWrite(LED_sync, HIGH);
+  display_wipe();
+  /*
   for(int i = 0; i < 4; i++)
   {
     for(int k = 0; k <7 ; k++)
@@ -73,6 +76,7 @@ void setup()
     update_onboard(30*i, 8, 0);
     update_onboard(30*i, 9, 0);
   }
+  */
   #endif /* !TESTING_MODE*/
   
   Serial.begin(9600);
@@ -97,13 +101,26 @@ void display_realign()
   digitalWrite(LED_sync, LOW);
 }
 
+
+
 void update_onboard(uint8_t timeslice, uint8_t layer, uint16_t newval) //Update coordinate of onboard arduino
 {
   tierport = layer/onboard_num_layers + 1;         //Tier 0 is PC0, Tier 1 is PC1, Tier 2 is PC2, Clock is PC3; (Analog Pins);
   Ctransfer(16, newval);      //Transfer new value;
   Ctransfer(7, (vol_slices - vol_slices/8*(layer%8) + timeslice)%vol_slices);    //Transfer timeslice coordinate with offsets;
   Ctransfer(3, layer%onboard_num_layers);        //Transfer layer coordinate;
-  delay(50);
+  delay(40);
+}
+
+void display_wipe()
+{
+  for(tierport = 1; tierport <= 3; tierport++)
+  {
+    Ctransfer(16, 0);
+    Ctransfer(7, 120);    //Pass out of bound;
+    Ctransfer(3, 5);      //Pass out of bound;
+  }
+  delay(40);
 }
 
 void Ctransfer(uint8_t bitlength, uint16_t val)
@@ -117,7 +134,7 @@ void Ctransfer(uint8_t bitlength, uint16_t val)
     delayMicroseconds(4);
     PORTC &= ~(1 << tierport);
     PORTC |= (1 << tierport);
-    delayMicroseconds(16);
+    delayMicroseconds(8);
   }
 }
 
